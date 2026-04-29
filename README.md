@@ -203,7 +203,7 @@ This project is licensed under the **GNU General Public License v3.0 (GPL‑3.0)
 
 <p align="center">
   <br>
-  <sub>Built with ❤️ for the scholarly publishing community</sub>
+  <creator>Built with ❤️ for the scholarly publishing community</creator>
   <br><br>
   <a href="https://github.com/mokesano/jats-engine/stargazers">
     <img src="https://img.shields.io/github/stars/mokesano/jats-engine?style=social" alt="GitHub Stars">
@@ -212,5 +212,5 @@ This project is licensed under the **GNU General Public License v3.0 (GPL‑3.0)
     <img src="https://img.shields.io/github/forks/mokesano/jats-engine?style=social" alt="GitHub Forks">
   </a>
   <br><br>
-  <sub>© 2026 Rochmady. Licensed under GPL‑3.0.</sub>
+  <copyright>© 2026 Rochmady. Licensed under GPL‑3.0.</copyright>
 </p>
