@@ -8,8 +8,12 @@ use Exception;
 use DOMDocument;
 use Wizdam\JatsEngine\Builders\MetadataBuilder;
 use Wizdam\JatsEngine\Builders\BodyBuilder;
-use DAORegistry;
 
+/**
+ * JatsEngine - Engine untuk menghasilkan XML JATS dari dokumen DOCX.
+ * 
+ * Class ini bergantung pada OJS DAORegistry dan hanya berfungsi dalam environment OJS.
+ */
 class JatsEngine {
 
     protected int $articleId;
@@ -21,13 +25,17 @@ class JatsEngine {
     public function __construct(int $articleId) {
         $this->articleId = $articleId;
         
-        // Inisialisasi Builders
+        // Deteksi Base Directory (Support OJS struktur folder)
+        // Mundur 5 level dari lokasi file ini: lib/wizdam/JatsEngine/src/JatsEngine.php
+        // Level 1: src/ -> lib/wizdam/JatsEngine/
+        // Level 2: lib/wizdam/JatsEngine/ -> lib/wizdam/
+        // Level 3: lib/wizdam/ -> lib/
+        // Level 4: lib/ -> ojs-root/
+        $this->baseDir = dirname(dirname(dirname(dirname(dirname(__FILE__)))));
+        
+        // Inisialisasi Builders (akan throw exception jika DAORegistry tidak tersedia)
         $this->metadataBuilder = new MetadataBuilder($articleId);
         $this->bodyBuilder = new BodyBuilder($articleId);
-        
-        // Deteksi Base Directory (Support OJS 2.x struktur folder)
-        // Mundur 4 level dari lokasi file ini: lib/wizdam/JatsEngine/
-        $this->baseDir = dirname(dirname(dirname(dirname(__FILE__))));
     }
 
     public function setSourceFile(string $filePath): void {
@@ -98,6 +106,10 @@ class JatsEngine {
      * Helper: Ambil Referensi Mentah dari Database OJS
      */
     private function getCitationsFromDB(): ?string {
+        if (!class_exists('DAORegistry')) {
+            return null;
+        }
+        
         $publishedArticleDao = DAORegistry::getDAO('PublishedArticleDAO');
         $articleObj = $publishedArticleDao->getPublishedArticleByArticleId($this->articleId);
         

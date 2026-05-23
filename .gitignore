@@ -1,27 +1,36 @@
 ```
-# Dependencies
-vendor/
-
-# Compiled files
-*.phpc
-*.class
+# Compiled and build artifacts
+*.pyc
+__pycache__/
 *.o
 *.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
 *.out
 
-# Build artifacts
-build/
-dist/
-coverage/
-htmlcov/
-
-# Logs
-*.log
-
-# Environment
+# Dependencies
+node_modules/
+vendor/
+composer.lock
+*.lock
+venv/
+.venv/
 .env
 .env.local
-*.env.*
+.env.*
+
+# Build directories
+dist/
+build/
+target/
+coverage/
+htmlcov/
+.mypy_cache/
+.pytest_cache/
+.coverage
 
 # Editors
 .vscode/
@@ -30,13 +39,32 @@ htmlcov/
 *.swo
 *.tmp
 
-# System
+# System files
 .DS_Store
 Thumbs.db
+*.log
 
-# Cache
-__pycache__/
-*.pyc
-*.pyo
-.Python
+# Compression archives
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```
