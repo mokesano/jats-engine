@@ -1,0 +1,42 @@
+```
+# Dependencies
+vendor/
+
+# Compiled files
+*.phpc
+*.class
+*.o
+*.obj
+*.out
+
+# Build artifacts
+build/
+dist/
+coverage/
+htmlcov/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# System
+.DS_Store
+Thumbs.db
+
+# Cache
+__pycache__/
+*.pyc
+*.pyo
+.Python
+```

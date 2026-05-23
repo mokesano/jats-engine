@@ -1,44 +1,39 @@
 <?php
+
 declare(strict_types=1);
 
 /**
- * Autoloader untuk Wizdam\JatsEngine
- * Menangani mapping namespace modern ke struktur folder manual
+ * PSR-4 Autoloader untuk Wizdam\JatsEngine
+ * 
+ * Mengimplementasikan standar PSR-4 untuk autoloading class
+ * dengan mapping namespace ke struktur direktori src/
  */
 
-spl_autoload_register(function ($class) {
-    // 1. Definisikan Prefix Namespace Proyek Ini
+spl_autoload_register(static function (string $class): void {
+    // Prefix namespace untuk library JatsEngine
     $prefix = 'Wizdam\\JatsEngine\\';
-
-    // 2. Cek apakah class yang dipanggil menggunakan prefix ini
+    
+    // Base directory untuk namespace prefix ini
+    $baseDir = __DIR__ . '/src/';
+    
+    // Cek apakah class menggunakan prefix namespace ini
     $len = strlen($prefix);
     if (strncmp($prefix, $class, $len) !== 0) {
-        return; // Bukan urusan kita, serahkan ke autoloader lain (jika ada)
+        // Bukan class milik namespace ini, biarkan autoloader lain menanganinya
+        return;
     }
-
-    // 3. Ambil nama class relatif (setelah prefix)
+    
+    // Ambil bagian relative class name setelah prefix
     $relativeClass = substr($class, $len);
-
-    // 4. Tentukan Base Directory dari file ini
-    $baseDir = dirname(__FILE__);
-
-    // 5. LOGIKA MAPPING KHUSUS
-    // Kasus A: Class Utama (JatsEngine) ada di root folder library
-    if ($relativeClass === 'JatsEngine') {
-        $file = $baseDir . '/JatsEngine.php';
-    } 
-    // Kasus B: Class lainnya (Builders, Parsers) ada di dalam folder 'src/'
-    else {
-        // Ganti backslash namespace dengan directory separator
-        $path = str_replace('\\', '/', $relativeClass);
-        $file = $baseDir . '/src/' . $path . '.php';
-    }
-
-    // 6. Jika file ditemukan, require
+    
+    // Ganti backslash namespace dengan directory separator untuk mendapatkan path file
+    $relativePath = str_replace('\\', '/', $relativeClass);
+    
+    // Bangun path lengkap ke file class
+    $file = $baseDir . $relativePath . '.php';
+    
+    // Load file jika ada
     if (file_exists($file)) {
         require_once $file;
-    } else {
-        // Opsional: Error log untuk debugging
-        // error_log("JatsEngine Autoloader: File tidak ditemukan untuk class $class di $file");
     }
 });
