@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Wizdam\JatsEngine\Builders;
 
-use DAORegistry;
 use DOMDocument;
 use DOMElement;
-use Config;
 
+/**
+ * MetadataBuilder untuk membangun bagian front dan back matter dari JATS XML.
+ * 
+ * Class ini bergantung pada OJS DAORegistry dan hanya berfungsi dalam environment OJS.
+ * Untuk testing standalone, mock atau stub DAORegistry diperlukan.
+ */
 class MetadataBuilder {
 
     protected int $articleId;
@@ -22,6 +26,15 @@ class MetadataBuilder {
 
     public function __construct(int $articleId) {
         $this->articleId = $articleId;
+        
+        // Cek apakah DAORegistry tersedia (hanya tersedia di environment OJS)
+        if (!class_exists('DAORegistry')) {
+            throw new \RuntimeException(
+                'DAORegistry tidak ditemukan. MetadataBuilder hanya dapat digunakan dalam environment OJS. ' .
+                'Pastikan OJS telah di-bootstrap sebelum menggunakan class ini.'
+            );
+        }
+        
         $this->articleDAO = DAORegistry::getDAO('ArticleDAO');
         $this->authorDAO = DAORegistry::getDAO('AuthorDAO');
         $this->journalDAO = DAORegistry::getDAO('JournalDAO');
@@ -30,8 +43,10 @@ class MetadataBuilder {
         $this->publishedArticleDAO = DAORegistry::getDAO('PublishedArticleDAO');
         
         // OJS 2.x DAO Import
-        import('classes.submission.sectionEditor.SectionEditorSubmissionDAO');
-        $this->sectionEditorSubmissionDAO = DAORegistry::getDAO('SectionEditorSubmissionDAO');
+        if (function_exists('import')) {
+            import('classes.submission.sectionEditor.SectionEditorSubmissionDAO');
+            $this->sectionEditorSubmissionDAO = DAORegistry::getDAO('SectionEditorSubmissionDAO');
+        }
     }
 
     protected function getArticleObj() {
