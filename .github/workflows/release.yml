@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-dev
+
+      - name: Run static analysis (PHPStan)
+        run: |
+          composer require --dev phpstan/phpstan
+          vendor/bin/phpstan analyse src --level max --no-progress
+
+      - name: Run code style check (PHP CS Fixer)
+        run: |
+          composer require --dev friendsofphp/php-cs-fixer
+          vendor/bin/php-cs-fixer fix src --dry-run --diff --verbose
+
+      - name: Run tests
+        run: |
+          composer require --dev phpunit/phpunit
+          vendor/bin/phpunit --configuration phpunit.xml --testdox
+
+      - name: Create release archive
+        run: |
+          mkdir -p dist
+          tar -czvf dist/jats-engine-${{ github.ref_name }}.tar.gz \
+            --exclude='.git' \
+            --exclude='tests' \
+            --exclude='.github' \
+            --exclude='dist' \
+            .
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${{ github.ref_name }})
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..${{ github.ref_name }})
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/jats-engine-${{ github.ref_name }}.tar.gz
+          body: |
+            ## Changelog
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Installation
+            
+            ### Via Composer
+            ```bash
+            composer require wizdam/jats-engine:${{ github.ref_name }}
+            ```
+            
+            ### Manual Installation
+            1. Download the attachment `jats-engine-${{ github.ref_name }}.tar.gz`
+            2. Extract to your OJS library directory: `lib/wizdam/JatsEngine/`
+            3. Ensure autoloading is configured in your application
+            
+            ## Requirements
+            - PHP 8.1+
+            - OJS 3.x (for full functionality)
+            - Composer (optional, for development)
+            
+            ## Usage
+            
+            ```php
+            use Wizdam\JatsEngine\JatsEngine;
+            
+            $engine = new JatsEngine($articleId);
+            $xml = $engine->generate();
+            ```
+            
+            ## Testing
+            
+            ```bash
+            composer install
+            vendor/bin/phpunit
+            ```
+          draft: false
+          prerelease: false
+          name: Release ${{ github.ref_name }}
