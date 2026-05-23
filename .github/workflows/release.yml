@@ -97,38 +97,6 @@ jobs:
             
             ${{ steps.changelog.outputs.changelog }}
             
-            ## Installation
-            
-            ### Via Composer
-            ```bash
-            composer require wizdam/jats-engine:${{ github.ref_name }}
-            ```
-            
-            ### Manual Installation
-            1. Download the attachment `jats-engine-${{ github.ref_name }}.tar.gz`
-            2. Extract to your OJS library directory: `lib/wizdam/JatsEngine/`
-            3. Ensure autoloading is configured in your application
-            
-            ## Requirements
-            - PHP 8.1+
-            - OJS 3.x (for full functionality)
-            - Composer (optional, for development)
-            
-            ## Usage
-            
-            ```php
-            use Wizdam\JatsEngine\JatsEngine;
-            
-            $engine = new JatsEngine($articleId);
-            $xml = $engine->generate();
-            ```
-            
-            ## Testing
-            
-            ```bash
-            composer install
-            vendor/bin/phpunit
-            ```
           draft: false
           prerelease: false
           name: Release ${{ github.ref_name }}
