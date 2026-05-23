@@ -16,58 +16,119 @@
 #   Pastikan Anda menggunakan format commit Conventional Commits.
 #   Token GITHUB_TOKEN sudah tersedia otomatis di Actions.
 
-name: Release Otomatis (Semantic Release)
+name: Release
 
-# Jalankan workflow ketika ada push ke branch utama (rilis) dan develop (hanya untuk memicu CI tanpa rilis)
 on:
   push:
-    branches:
-      - main
-      - master
-      - develop
-      - production
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
-# Izin yang diperlukan untuk membuat release dan tag
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
+  packages: write
 
 jobs:
-  release:
-    # Hanya jalankan job rilis untuk branch yang memang menghasilkan versi resmi
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/production'
+  build-and-release:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # 1. Checkout repository dengan riwayat penuh (agar semantic-release bisa
-      #    melihat commit dan tag sebelumnya)
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2. Setup Node.js (dibutuhkan oleh semantic-release yang berjalan di atas Node)
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
         with:
-          node-version: 'lts/*'
+          php-version: '8.1'
+          coverage: none
+          tools: composer:v2
 
-      # 3. Install semantic-release dan plugin yang diperlukan
-      #    (plugin tambahan bisa disesuaikan, yang di bawah sudah mencukupi)
-      - name: Install semantic-release dan plugin
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-dev
+
+      - name: Run static analysis (PHPStan)
         run: |
-          npm init -y
-          npm install --save-dev \
-            semantic-release \
-            @semantic-release/commit-analyzer \
-            @semantic-release/release-notes-generator \
-            @semantic-release/github \
-            @semantic-release/git
+          composer require --dev phpstan/phpstan
+          vendor/bin/phpstan analyse src --level max --no-progress
 
-      # 4. Jalankan semantic-release
-      #    Environment variable GITHUB_TOKEN sudah otomatis tersedia
-      - name: Jalankan semantic-release
-        run: npx semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run code style check (PHP CS Fixer)
+        run: |
+          composer require --dev friendsofphp/php-cs-fixer
+          vendor/bin/php-cs-fixer fix src --dry-run --diff --verbose
+
+      - name: Run tests
+        run: |
+          composer require --dev phpunit/phpunit
+          vendor/bin/phpunit --configuration phpunit.xml --testdox
+
+      - name: Create release archive
+        run: |
+          mkdir -p dist
+          tar -czvf dist/jats-engine-${{ github.ref_name }}.tar.gz \
+            --exclude='.git' \
+            --exclude='tests' \
+            --exclude='.github' \
+            --exclude='dist' \
+            .
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${{ github.ref_name }})
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..${{ github.ref_name }})
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/jats-engine-${{ github.ref_name }}.tar.gz
+          body: |
+            ## Changelog
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Installation
+            
+            ### Via Composer
+            ```bash
+            composer require wizdam/jats-engine:${{ github.ref_name }}
+            ```
+            
+            ### Manual Installation
+            1. Download the attachment `jats-engine-${{ github.ref_name }}.tar.gz`
+            2. Extract to your OJS library directory: `lib/wizdam/JatsEngine/`
+            3. Ensure autoloading is configured in your application
+            
+            ## Requirements
+            - PHP 8.1+
+            - OJS 3.x (for full functionality)
+            - Composer (optional, for development)
+            
+            ## Usage
+            
+            ```php
+            use Wizdam\JatsEngine\JatsEngine;
+            
+            $engine = new JatsEngine($articleId);
+            $xml = $engine->generate();
+            ```
+            
+            ## Testing
+            
+            ```bash
+            composer install
+            vendor/bin/phpunit
+            ```
+          draft: false
+          prerelease: false
+          name: Release ${{ github.ref_name }}
